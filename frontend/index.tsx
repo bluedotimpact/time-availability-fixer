@@ -1,45 +1,62 @@
 import {Button, FieldPickerSynced, initializeBlock, Label, Loader, TablePickerSynced, useBase, useGlobalConfig, ViewPickerSynced} from '@airtable/blocks/ui';
 import React, { useState } from 'react';
-import { correctTimeAv } from '../lib/adjust';
+import { correctTimeAv, parseTimezoneToOffsetInHours, adjustTimeAv } from '../lib/adjust';
 import { GCKey, get } from './globalConfigHelpers';
 
 function HelloWorldTypescriptApp() {
     const globalConfig = useGlobalConfig();
     const base = useBase()
     const participantsTable = base.getTableByIdIfExists(get(globalConfig, GCKey.TABLE_ID, base.tables[0].id))
-    const [running, setRunning] = useState(false)
+    const [running, setRunning] = useState<boolean>(false)
+    const [error, setError] = useState<string | undefined>(undefined)
 
     const onSubmit = async () => {
         setRunning(true)
-        await fix();
+        setError(undefined)
+        try {
+            await fix();
+        } catch (err) {
+            setError(String(err))
+        }
         setRunning(false)
     }
 
     const fix = async () => {
         const tableId: string | null = get(globalConfig, GCKey.TABLE_ID, null)
-        if (!tableId) return alert('No table selected')
+        if (!tableId) throw new Error('No table selected')
 
         const viewId: string | null = get(globalConfig, GCKey.VIEW_ID, null)
-        if (!viewId) return alert('No view selected')
+        if (!viewId) throw new Error('No view selected')
 
         const inputAvailabilityFieldId: string | null = get(globalConfig, GCKey.INPUT_AVAILABILITY_FIELD_ID, null)
-        if (!inputAvailabilityFieldId) return alert('No inputAvailabilityField selected')
+        if (!inputAvailabilityFieldId) throw new Error('No inputAvailabilityField selected')
 
         const inputTimezoneFieldId: string | null = get(globalConfig, GCKey.INPUT_TIMEZONE_FIELD_ID, null)
-        if (!inputTimezoneFieldId) return alert('No inputTimezoneField selected')
+        if (!inputTimezoneFieldId) throw new Error('No inputTimezoneField selected')
 
         const outputAvailabilityFieldId: string | null = get(globalConfig, GCKey.OUTPUT_AVAILABILITY_FIELD_ID, null)
-        if (!outputAvailabilityFieldId) return alert('No outputAvailabilityField selected')
+        if (!outputAvailabilityFieldId) throw new Error('No outputAvailabilityField selected')
 
-        if (inputAvailabilityFieldId === outputAvailabilityFieldId || inputTimezoneFieldId === outputAvailabilityFieldId) return alert('Input and output fields must be different to avoid losing overwritten data')
+        const outputLocalTimeAvailabilityFieldId: string | null = get(globalConfig, GCKey.OUTPUT_LOCAL_TIME_AVAILABILITY_FIELD_ID, null)
+
+        const inputFields = [inputAvailabilityFieldId, inputTimezoneFieldId]
+        if (inputFields.includes(outputAvailabilityFieldId) || inputFields.includes(outputLocalTimeAvailabilityFieldId)) throw new Error('Input and output fields must not overlap to avoid losing overwritten data')
+
+        if (outputAvailabilityFieldId === outputLocalTimeAvailabilityFieldId) throw new Error('Output fields must be different')
 
         const query = await base.getTableById(tableId).getViewById(viewId).selectRecordsAsync()
         const allUpdates = query.records.map(r => ({
             id: r.id,
-            fields: { [outputAvailabilityFieldId]: correctTimeAv(
-                r.getCellValueAsString(inputAvailabilityFieldId),
-                r.getCellValueAsString(inputTimezoneFieldId)
-            ) },
+            fields: {
+                [outputLocalTimeAvailabilityFieldId ?? outputAvailabilityFieldId]: adjustTimeAv(
+                    r.getCellValueAsString(inputAvailabilityFieldId),
+                    parseTimezoneToOffsetInHours(r.getCellValueAsString(inputTimezoneFieldId))
+                ),
+                [outputAvailabilityFieldId]: correctTimeAv(
+                    r.getCellValueAsString(inputAvailabilityFieldId),
+                    r.getCellValueAsString(inputTimezoneFieldId)
+                ),
+            },
         }))
         query.unloadData()
 
@@ -96,12 +113,23 @@ function HelloWorldTypescriptApp() {
             </div>
 
             <div>
-                <Label htmlFor="view-picker">Availability output</Label>
+                <Label htmlFor="availability-ouput-picker">Availability output</Label>
                 <FieldPickerSynced
                     id="availability-ouput-picker"
                     placeholder="Pick the (fixed) availability output..."
                     table={participantsTable}
                     globalConfigKey={GCKey.OUTPUT_AVAILABILITY_FIELD_ID}
+                />
+            </div>
+
+            <div>
+                <Label htmlFor="availability-local-ouput-picker">Availability local output (optional)</Label>
+                <FieldPickerSynced
+                    id="availability-local-ouput-picker"
+                    placeholder="Pick the (local time) availability output..."
+                    table={participantsTable}
+                    globalConfigKey={GCKey.OUTPUT_LOCAL_TIME_AVAILABILITY_FIELD_ID}
+                    shouldAllowPickingNone={true}
                 />
             </div>
         </div>
@@ -115,6 +143,7 @@ function HelloWorldTypescriptApp() {
             Run
         </Button>
         {running && <Loader marginLeft={2} />}
+        {error && <p style={{ color: '#8B0000' }}>{error}</p>}
     </div>;
 }
 

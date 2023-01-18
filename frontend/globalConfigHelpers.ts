@@ -7,6 +7,7 @@ export enum GCKey {
   INPUT_AVAILABILITY_FIELD_ID = "inputAvailabilityFieldId",
   INPUT_TIMEZONE_FIELD_ID = "inputTimezoneFieldId",
   OUTPUT_AVAILABILITY_FIELD_ID = "outputAvailabilityFieldId",
+  OUTPUT_LOCAL_TIME_AVAILABILITY_FIELD_ID = "outputLocalTimeAvailabilityFieldId",
 }
 
 export const get = <T,>(globalConfig: GlobalConfig, key: GCKey | string, ifMissing: T): string | T => {
