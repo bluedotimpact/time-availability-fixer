@@ -1,4 +1,4 @@
-# time-availability-fixer
+# time-availability-fixer ![deployment manual](https://img.shields.io/badge/deployment-manual-critical)
 
 On 2023-01-17 we discovered facilitator and participant availabilities had been recorded incorrectly. Where availabilities had been entered in a particular timezone, the offset had been inverted.
 
