@@ -1,4 +1,6 @@
 {
+    "name": "time-availability-fixer",
+    "license": "AGPL-3.0-only",
     "scripts": {
         "start": "npm run start:software",
         "start:software": "block run --remote software",

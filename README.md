@@ -1,4 +1,12 @@
-# time-availability-fixer ![deployment manual](https://img.shields.io/badge/deployment-manual-critical)
+_This product is archived. This means we no longer use or develop it._
+
+---
+
+# time-availability-fixer
+
+An Airtable extension to invert an offset for a given time availability. For example 'UTC-01:00' + 'M11:00 M12:00' → 'M13:00 M14:00'.
+
+![Screenshot of the Airtable extension](./screenshot.png)
 
 On 2023-01-17 we discovered facilitator and participant availabilities had been recorded incorrectly. Where availabilities had been entered in a particular timezone, the offset had been inverted.
 
